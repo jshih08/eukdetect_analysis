@@ -6,7 +6,7 @@ Code and scripts used to perform statistical analyses of EukDetect outputs.
 ├── README.md
 └── scripts
     ├── eukdetect_analysis_functions.R
-    └── eukdetect_analysis_pace.R
+    └── eukdetect_analysis_generate_objects.R
 ```
 
 
