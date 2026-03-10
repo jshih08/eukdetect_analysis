@@ -7,7 +7,10 @@ Code and scripts used to perform statistical analyses of EukDetect outputs.
 └── scripts
     ├── eukdetect_analysis_functions.R
     └── eukdetect_analysis_pace.R
+```
 
+
+```md
 > sessionInfo()
 R version 4.5.1 (2025-06-13)
 Platform: x86_64-pc-linux-gnu
