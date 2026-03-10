@@ -1,0 +1,297 @@
+---
+title: "Eukdetect output analysis"
+format: 
+  html:
+    author: "Johnathan Shih"
+    date: today
+    code-fold: true
+    page-layout: full
+    toc: true
+    toc-location: "left"
+    smooth-scroll: true
+execute:
+  cache: false
+---
+
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 6
+#| fig-height: 6
+
+library(purrr)
+library(cowplot)
+library(tidyverse)
+
+source("eukdetect_analysis_functions.R")
+
+cohorts <- c("predict1","predict2","predict3_uk",
+             "predict3_us1","predict3us22a","hadza")
+
+# All intensive analyses were run with a cluster compute node with eukdetect_analysis_pace.R
+
+print(cohorts)
+
+
+
+p_val_threshold <- 0.01
+cohort_inclusion <- 2
+```
+
+
+Following figures use adjustable filters of p`.adj.hochberg > 0.01` in at least 2 cohorts.
+
+### Difference in clr-transformed bacterial abundance ~ Blastocystis
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 15
+
+p_blast <- read_csv("data/predict1_blast_interactions.csv") %>% 
+  mutate(cohort = "predict1") %>%
+  bind_rows(
+    read_csv("data/hadza_blast_interactions.csv") %>% 
+    mutate(cohort = "hadza"),
+    read_csv("data/predict3_uk_blast_interactions.csv") %>% 
+    mutate(cohort = "predict3_uk"),
+    read_csv("data/predict2_blast_interactions.csv") %>% 
+    mutate(cohort = "predict2"),
+    read_csv("data/predict3_us1_blast_interactions.csv") %>% 
+    mutate(cohort = "predict3_us1"),
+    read_csv("data/predict3us22a_blast_interactions.csv") %>% 
+    mutate(cohort = "predict3us22a")
+  ) %>%
+  filter(p.adj.hochberg < p_val_threshold) %>% # only significant taxa
+  group_by(taxa) %>%
+  filter(n() > cohort_inclusion) %>% # only plotting significant taxa in at least n cohorts
+  ungroup() %>% 
+  select(taxa, coefficient = coefficient, cilower = cilower, ciupper = ciupper, everything()) %>%
+  filter(!str_detect(taxa, "Blastocystis")) %>% # removing metaphlan4's blasto
+  filter(!str_detect(taxa, "^GGB")) %>% # removing unclassified
+  filter(!str_detect(taxa, "\\d{4}")) %>% # removing unclassified
+  # filter(abs(coefficient) > 1) %>%
+  ggplot(aes(x = coefficient, y = reorder(taxa, coefficient), group = cohort, color = cohort)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = cilower, xmax = ciupper, color = cohort), 
+                 height = 0.3, alpha = 0.6, position = position_dodge(width = 0.5)) +
+  geom_point(size = 2, position = position_dodge(width = 0.5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "Mean difference in clr-transformed abundance with Blastocystis (RPKSM) abundance", y = "taxa", color = "Cohort") +
+  theme_cowplot(14) +
+  background_grid()
+
+p_blast
+```
+
+
+
+### Difference in clr-transformed bacterial abundance ~ Dientamoeba
+
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 4
+
+p_dient <- read_csv("data/predict1_dient_interactions.csv") %>% 
+  mutate(cohort = "predict1") %>%
+  bind_rows(
+    read_csv("data/hadza_dient_interactions.csv") %>% 
+    mutate(cohort = "hadza"),
+    read_csv("data/predict3_uk_dient_interactions.csv") %>% 
+    mutate(cohort = "predict3_uk"),
+    read_csv("data/predict2_dient_interactions.csv") %>% 
+    mutate(cohort = "predict2"),
+    read_csv("data/predict3_us1_dient_interactions.csv") %>% 
+    mutate(cohort = "predict3_us1"),
+    read_csv("data/predict3us22a_dient_interactions.csv") %>% 
+    mutate(cohort = "predict3us22a")
+  ) %>%
+  filter(p.adj.hochberg < p_val_threshold) %>% # only significant taxa
+  group_by(taxa) %>%
+  filter(n() > cohort_inclusion) %>% # only plotting signicant taxa in at least n cohorts
+  ungroup() %>% 
+  select(taxa, coefficient = coefficient, cilower = cilower, ciupper = ciupper, everything()) %>%
+  filter(!str_detect(taxa, "Dient")) %>% # removing metaphlan4's Dientamoeba
+  filter(!str_detect(taxa, "^GGB")) %>% # removing unclassified
+  filter(!str_detect(taxa, "\\d{4}")) %>% # removing unclassified
+  # filter(abs(coefficient) > 1) %>%
+  ggplot(aes(x = coefficient, y = reorder(taxa, coefficient), group = cohort, color = cohort)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = cilower, xmax = ciupper, color = cohort), 
+                 height = 0.3, alpha = 0.6, position = position_dodge(width = 0.5)) +
+  geom_point(size = 2, position = position_dodge(width = 0.5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "Mean difference in clr-transformed abundance with Dientamoeba (RPKSM) abundance", y = "taxa", color = "Cohort") +
+  theme_cowplot(14) +
+  background_grid()
+
+p_dient
+```
+
+
+### Difference in clr-transformed bacterial abundance ~ Blastocystis adjusting for Dientamoeba and interaction
+
+Effect of Blastocystis RPKSM on bacterial abundance when Dientamoeba is 0.
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 24
+
+p_intxn_blast <- read_csv("data/predict1_itxn_interactions.csv") %>% 
+  mutate(cohort = "predict1") %>%
+  bind_rows(
+    read_csv("data/hadza_itxn_interactions.csv") %>% 
+    mutate(cohort = "hadza"),
+    read_csv("data/predict3_uk_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_uk"),
+    read_csv("data/predict2_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict2"),
+    read_csv("data/predict3_us1_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_us1"),
+    read_csv("data/predict3us22a_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3us22a")
+  ) %>%
+  filter(p.adj.hochberg_blast < p_val_threshold) %>% # only significant taxa
+  group_by(taxa) %>%
+  filter(n() > 1) %>% # only plotting signicant taxa in at least n cohorts
+  ungroup() %>% 
+  select(taxa, coefficient = coefficient_blast, cilower = cilower_blast, ciupper = ciupper_blast, everything()) %>%
+  filter(!str_detect(taxa, "Blast")) %>% # removing metaphlan4's Blastocystis
+  filter(!str_detect(taxa, "Dient")) %>% # removing metaphlan4's Dientamoeba
+  filter(!str_detect(taxa, "^GGB")) %>% # removing unclassified
+  filter(!str_detect(taxa, "\\d{4}")) %>% # removing unclassified
+  # filter(abs(coefficient) > 1) %>%
+  ggplot(aes(x = coefficient, y = reorder(taxa, coefficient), group = cohort, color = cohort)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = cilower, xmax = ciupper, color = cohort), 
+                 height = 0.3, alpha = 0.6, position = position_dodge(width = 0.5)) +
+  geom_point(size = 2, position = position_dodge(width = 0.5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "Mean difference in clr-transformed abundance with Blastocystis (RPKSM) abundance when Dientamoeba is absent", y = "taxa", color = "Cohort") +
+  theme_cowplot(14) +
+  background_grid()
+
+p_intxn_blast
+```
+
+
+### Difference in clr-transformed bacterial abundance ~ Dientamoeba adjusting for Blastocystis and interaction
+
+Effect of Dientamoeba RPKSM on bacterial abundance when Blastocystis is 0.
+
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 9
+
+p_intxn_dient <- read_csv("data/predict1_itxn_interactions.csv") %>% 
+  mutate(cohort = "predict1") %>%
+  bind_rows(
+    read_csv("data/hadza_itxn_interactions.csv") %>% 
+    mutate(cohort = "hadza"),
+    read_csv("data/predict3_uk_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_uk"),
+    read_csv("data/predict2_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict2"),
+    read_csv("data/predict3_us1_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_us1"),
+    read_csv("data/predict3us22a_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3us22a")
+  ) %>%
+  filter(p.adj.hochberg_dient < p_val_threshold) %>% # only significant taxa
+  group_by(taxa) %>%
+  filter(n() > 1) %>% # only plotting signicant taxa in at least n cohorts
+  ungroup() %>% 
+  select(taxa, coefficient = coefficient_dient, cilower = cilower_dient, ciupper = ciupper_dient, everything()) %>%
+  filter(!str_detect(taxa, "Blast")) %>% # removing metaphlan4's Blastocystis
+  filter(!str_detect(taxa, "Dient")) %>% # removing metaphlan4's Dientamoeba
+  filter(!str_detect(taxa, "^GGB")) %>% # removing unclassified
+  filter(!str_detect(taxa, "\\d{4}")) %>% # removing unclassified
+  # filter(abs(coefficient) > 1) %>%
+  ggplot(aes(x = coefficient, y = reorder(taxa, coefficient), group = cohort, color = cohort)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = cilower, xmax = ciupper, color = cohort), 
+                 height = 0.3, alpha = 0.6, position = position_dodge(width = 0.5)) +
+  geom_point(size = 2, position = position_dodge(width = 0.5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "Mean difference in clr-transformed abundance with Dientamoeba (RPKSM) abundance when Blastocystis is absent", y = "taxa", color = "Cohort") +
+  theme_cowplot(14) +
+  background_grid()
+
+p_intxn_dient
+
+```
+
+### Interaction term in clr-transformed bacterial abundance ~ Blastocystis * Dientamoeba
+
+Blast*Dient coefficient: How much does the Blastocystis effect change depend on Dientamoeba abundance.
+If 0, there is no interaction between the two protists. If positive, Dientamoeba amplifies Blastocystis's effect and when negative, Dientamoeba weakens Blastocystis's effect and vice versa.
+
+**No filter of at least in 2 cohorts included in the interaction coefficient figure.**
+```{r}
+#| warning: false
+#| message: false
+#| fig-width: 12
+#| fig-height: 14
+
+p_itxn_coeff <- read_csv("data/predict1_itxn_interactions.csv") %>% 
+  mutate(cohort = "predict1") %>%
+  bind_rows(
+    read_csv("data/hadza_itxn_interactions.csv") %>% 
+    mutate(cohort = "hadza"),
+    read_csv("data/predict3_uk_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_uk"),
+    read_csv("data/predict2_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict2"),
+    read_csv("data/predict3_us1_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3_us1"),
+    read_csv("data/predict3us22a_itxn_interactions.csv") %>% 
+    mutate(cohort = "predict3us22a")
+  ) %>%
+  filter(p.adj.hochberg_itxn < 0.01) %>% # only significant taxa
+  group_by(taxa) %>%
+  # filter(n() > cohort_inclusion) %>% # only plotting signicant taxa in at least n cohorts
+  ungroup() %>% 
+  select(taxa, coefficient = coefficient_itxn, cilower = cilower_itxn, ciupper = ciupper_itxn, everything()) %>%
+  filter(!str_detect(taxa, "Blast")) %>% # removing metaphlan4's Dientamoeba
+  filter(!str_detect(taxa, "Dient")) %>% # removing metaphlan4's Dientamoeba
+  filter(!str_detect(taxa, "^GGB")) %>% # removing unclassified
+  filter(!str_detect(taxa, "\\d{4}")) %>% # removing unclassified
+  # filter(abs(coefficient) > 1) %>%
+  ggplot(aes(x = coefficient, y = reorder(taxa, coefficient), group = cohort, color = cohort)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "gray50") +
+  geom_errorbarh(aes(xmin = cilower, xmax = ciupper, color = cohort), 
+                 height = 0.3, alpha = 0.6, position = position_dodge(width = 0.5)) +
+  geom_point(size = 2, position = position_dodge(width = 0.5)) +
+  scale_color_brewer(palette = "Dark2") +
+  labs(x = "Interaction term - Change in Blastocystis effect on clr-transformed abundance with varying Dientamoeba abundance", y = "taxa", color = "Cohort") +
+  theme_cowplot(14) +
+  background_grid()
+
+p_itxn_coeff
+```
+
+### Saving publication quality figures
+
+
+```{r}
+#| warning: false
+#| message: false
+
+# code to save high dpi svg/pdfs
+save_plot("figures/blast_figure.pdf", p_blast, dpi = 300, base_height = 15, base_width = 12)
+save_plot("figures/blast_figure.pdf", p_dient, dpi = 300, base_height = 4, base_width = 12)
+save_plot("figures/blast_figure.pdf", p_intxn_blast, dpi = 300, base_height = 24, base_width = 12)
+save_plot("figures/blast_figure.pdf", p_intxn_dient, dpi = 300, base_height = 9, base_width = 12)
+save_plot("figures/blast_figure.pdf", p_itxn_coeff, dpi = 300, base_height = 14, base_width = 12)
+
+
+```
