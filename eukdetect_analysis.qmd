@@ -288,10 +288,10 @@ p_itxn_coeff
 
 # code to save high dpi svg/pdfs
 save_plot("figures/blast_figure.pdf", p_blast, dpi = 300, base_height = 15, base_width = 12)
-save_plot("figures/blast_figure.pdf", p_dient, dpi = 300, base_height = 4, base_width = 12)
-save_plot("figures/blast_figure.pdf", p_intxn_blast, dpi = 300, base_height = 24, base_width = 12)
-save_plot("figures/blast_figure.pdf", p_intxn_dient, dpi = 300, base_height = 9, base_width = 12)
-save_plot("figures/blast_figure.pdf", p_itxn_coeff, dpi = 300, base_height = 14, base_width = 12)
+save_plot("figures/dient_figure.pdf", p_dient, dpi = 300, base_height = 4, base_width = 12)
+save_plot("figures/intxn_blast_figure.pdf", p_intxn_blast, dpi = 300, base_height = 24, base_width = 12)
+save_plot("figures/intxn_dient_figure.pdf", p_intxn_dient, dpi = 300, base_height = 9, base_width = 12)
+save_plot("figures/itxn_coeff_figure.pdf", p_itxn_coeff, dpi = 300, base_height = 14, base_width = 12)
 
 
 ```
